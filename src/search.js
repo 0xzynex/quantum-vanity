@@ -11,11 +11,12 @@ import { difficulty, chanceAfter, validate } from './pattern.js';
 export const defaultThreads = () => Math.max(1, (availableParallelism?.() ?? 2) - 1);
 
 export class Search extends EventEmitter {
-  constructor({ prefix = '', suffix = '', ignoreCase = false, threads = defaultThreads(), count = 1, outDir = 'keys' } = {}) {
+  constructor({ prefix = '', suffix = '', contains = '', ignoreCase = false, lucky = false, luckyRule, threads = defaultThreads(), count = 1, outDir = 'keys' } = {}) {
     super();
-    const errors = validate({ prefix, suffix, ignoreCase });
+    const errors = validate({ prefix, suffix, contains, ignoreCase });
     if (errors.length) throw new Error(errors.join('\n'));
-    this.opts = { prefix, suffix, ignoreCase };
+    this.opts = { prefix, suffix, contains, ignoreCase, lucky, ...(luckyRule ? { luckyRule } : {}) };
+    this.lucky = [];
     this.threads = threads;
     this.count = count;
     this.outDir = resolve(outDir);
@@ -45,19 +46,31 @@ export class Search extends EventEmitter {
     this.tries += m.n;
     if (m.sample) this.lastSample = m.sample;
     if (m.type === 'found') {
-      // Re-derive the public key from the seed before trusting anything.
-      const kp = keypairFromSeed(Buffer.from(m.seed));
-      const addr = encode(kp.publicKey);
-      if (addr !== m.address) return;
-      mkdirSync(this.outDir, { recursive: true, mode: 0o700 });
-      const file = join(this.outDir, `${addr}.json`);
-      writeFileSync(file, toSolanaKeypairJson(kp.seed, kp.publicKey), { mode: 0o600 });
-      try { chmodSync(file, 0o600); } catch { /* windows */ }
-      const hit = { address: addr, file, tries: this.tries, seconds: (Date.now() - this.startedAt) / 1000 };
+      const hit = this.#save(m, this.outDir);
+      if (!hit) return;
       this.found.push(hit);
       this.emit('found', hit);
       if (this.found.length >= this.count) this.stop('done');
     }
+    if (m.type === 'lucky') {
+      const hit = this.#save(m, join(this.outDir, 'lucky'));
+      if (!hit) return;
+      hit.why = m.why;
+      this.lucky.push(hit);
+      this.emit('lucky', hit);
+    }
+  }
+
+  #save(m, dir) {
+    // Re-derive the public key from the seed before trusting anything.
+    const kp = keypairFromSeed(Buffer.from(m.seed));
+    const addr = encode(kp.publicKey);
+    if (addr !== m.address) return null;
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    const file = join(dir, `${addr}.json`);
+    writeFileSync(file, toSolanaKeypairJson(kp.seed, kp.publicKey), { mode: 0o600 });
+    try { chmodSync(file, 0o600); } catch { /* windows */ }
+    return { address: addr, file, tries: this.tries, seconds: (Date.now() - this.startedAt) / 1000 };
   }
 
   stats() {
@@ -73,6 +86,7 @@ export class Search extends EventEmitter {
       expectedSeconds: rate > 0 ? this.diff.classical / rate : Infinity,
       difficulty: this.diff,
       found: this.found.length,
+      lucky: this.lucky.length,
       sample: this.lastSample,
       running: this.running,
     };

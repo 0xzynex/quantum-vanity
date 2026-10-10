@@ -120,3 +120,46 @@ test('export: base58 secret is the 64-byte keypair and restores the address', ()
   assert.equal(back.length, 64);
   assert.equal(address(keypairFromSeed(Buffer.from(back.slice(0, 32))).publicKey), address(k.publicKey));
 });
+
+test('several words: any of them matches, odds add up', async () => {
+  const { makeMatcher, matchSpans, difficulty: diff } = await import('../src/pattern.js');
+  const m = makeMatcher({ prefix: 'pump, bin' });
+  assert.ok(m('pumpXYZ') && m('binXYZ') && !m('solXYZ'));
+  const c = makeMatcher({ contains: 'moon', ignoreCase: true });
+  assert.ok(c('xxMOONyy') && !c('xxmoxnyy'));
+  const s = makeMatcher({ suffix: 'sol,bot' });
+  assert.ok(s('abcsol') && s('abcbot') && !s('solabc'));
+  assert.deepEqual(matchSpans('xxbinyy', { contains: 'pump,bin' }), [[2, 5]]);
+  const one = diff({ prefix: 'pump' }).p, two = diff({ prefix: 'pump,bin' }).p;
+  assert.ok(two > one * 10, 'bin is an easier first char, so the pair is much easier');
+  assert.equal(diff({ prefix: 'pu,pump' }).p, diff({ prefix: 'pu' }).p, 'pump is already covered by pu');
+});
+
+test('contains odds match real addresses', () => {
+  const m = makeMatcher({ contains: 'ab' });
+  let hits = 0;
+  const N = 40000;
+  for (let i = 0; i < N; i++) if (m(encode(randomBytes(32)))) hits++;
+  const p = probability({ contains: 'ab' });
+  assert.ok(Math.abs(hits / N - p) / p < 0.12, `${hits / N} vs ${p}`);
+});
+
+test('lucky addresses are detected and saved separately', async () => {
+  const { lucky } = await import('../src/pattern.js');
+  assert.match(lucky('aaaaaXYZ'), /starts with 5× a/);
+  assert.match(lucky('xyz777777q'), /6× 7 in a row/);
+  assert.equal(lucky('aaaab1234'), null);
+  const dir = mkdtempSync(join(tmpdir(), 'gv-'));
+  try {
+    // An easy rule (3 at the start / 3 in a row) so the test finishes fast.
+    const s = new Search({ prefix: 'zzzzzz', lucky: true, luckyRule: [3, 3], threads: 1, outDir: dir });
+    const hit = await new Promise((resolve, reject) => { s.on('lucky', resolve); s.on('error', reject); s.start(); });
+    await s.stop();
+    assert.ok(hit.why);
+    assert.ok(hit.file.includes(join(dir, 'lucky')));
+    const arr = JSON.parse(readFileSync(hit.file, 'utf8'));
+    assert.equal(address(keypairFromSeed(Buffer.from(arr.slice(0, 32))).publicKey), hit.address);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

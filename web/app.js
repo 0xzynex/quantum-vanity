@@ -1,4 +1,4 @@
-import { difficulty, validate } from '../src/pattern.js';
+import { difficulty, validate, words, matchSpans } from '../src/pattern.js';
 import { Grover } from '../src/grover.js';
 
 const $ = (id) => document.getElementById(id);
@@ -17,34 +17,39 @@ const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>':
 const INK = '#152238', INK2 = '#4b5a73', GRID = '#c3cfdc', MARKER = '#ffe03d', PENCIL = '#c0352d', PEN = '#2350b8';
 
 // ---------------- classical search ----------------
-const opts = () => ({ prefix: $('prefix').value.trim(), suffix: $('suffix').value.trim(), ignoreCase: $('ic').checked });
-let running = false, lastRate = 0;
+const WHERE_TEXT = { prefix: 'starts with', suffix: 'ends with', contains: 'contains' };
+const opts = () => {
+  const where = $('where').value;
+  return { prefix: '', suffix: '', contains: '', [where]: $('words').value, ignoreCase: $('ic').checked, lucky: $('lucky').checked, where };
+};
+let running = false, lastRate = 0, runOpts = null;
 
 function describe(o) {
-  const p = o.prefix ? `starts with ${o.prefix}` : '';
-  const s = o.suffix ? `ends with ${o.suffix}` : '';
-  return [p, s].filter(Boolean).join(' and ');
+  const list = words(o[o.where]);
+  const joined = list.length <= 1 ? list.join('') : `${list.slice(0, -1).join(', ')} or ${list[list.length - 1]}`;
+  return `${WHERE_TEXT[o.where]} ${joined}`;
 }
 
 function refreshOdds() {
   const o = opts();
-  if (!o.prefix && !o.suffix) {
-    $('prefix').classList.remove('bad'); $('suffix').classList.remove('bad');
+  if (!words(o[o.where]).length) {
+    $('words').classList.remove('bad');
     $('err').textContent = '';
-    $('odds').textContent = 'Type the start or the end of your address to see the odds.';
+    $('odds').textContent = 'Type a word to see the odds.';
     $('naive').textContent = '';
     setVs(null);
     return;
   }
   const errors = validate(o);
-  $('prefix').classList.toggle('bad', errors.some((e) => e.includes('prefix')));
-  $('suffix').classList.toggle('bad', errors.some((e) => e.includes('suffix')));
+  $('words').classList.toggle('bad', errors.length > 0);
   $('err').textContent = errors[0] ? errors[0].charAt(0).toUpperCase() + errors[0].slice(1) + '.' : '';
   if (errors.length) { $('odds').textContent = '—'; $('naive').textContent = ''; setVs(null); return; }
   const d = difficulty(o);
-  $('odds').innerHTML = `One key in <b>${fmt(d.classical)}</b> ${esc(describe(o))}${o.ignoreCase ? ', in any case' : ''}.`;
+  $('odds').innerHTML = `${d.approximate ? 'About one' : 'One'} key in <b>${fmt(d.classical)}</b> ${esc(describe(o))}${o.ignoreCase ? ', in any case' : ''}.`;
   const ratio = d.classical / d.naive;
-  if (ratio > 1.5) {
+  if (o.where === 'contains') {
+    $('naive').textContent = 'A word can sit anywhere in the 44 characters, so this is much easier than starts with or ends with.';
+  } else if (ratio > 1.5) {
     $('naive').innerHTML = `Simple 1-in-58 math says ${fmt(d.naive)}. Solana addresses rarely start with late letters, so this one is <b>${ratio.toFixed(0)}× rarer</b> than most calculators claim.`;
   } else if (ratio < 0.67) {
     $('naive').innerHTML = `Simple 1-in-58 math says ${fmt(d.naive)}. Early letters are common first characters, so this one is <b>${(1 / ratio).toFixed(1)}× easier</b> than most calculators claim.`;
@@ -60,24 +65,31 @@ function setVs(d) {
   $('vG').textContent = d ? `${fmt(d.grover)} queries` : '—';
   $('vX').innerHTML = d ? `That is <b>${fmt(d.speedup)} times fewer</b> steps: the square root of the work, times π/4.` : '';
   $('vQ').textContent = d
-    ? `It would need about ${Math.ceil(Math.log2(d.classical))} qubits to hold every candidate, plus a full ed25519 and base58 circuit as the oracle.`
+    ? `It would need about ${Math.max(1, Math.ceil(Math.log2(d.classical)))} qubits to hold every candidate, plus a full ed25519 and base58 circuit as the oracle.`
     : '';
 }
 
-['prefix', 'suffix', 'ic'].forEach((id) => $(id).addEventListener('input', refreshOdds));
+const fitWords = () => { $('words').style.width = `${Math.min(28, Math.max(5, $('words').value.length + 1))}ch`; };
+$('words').addEventListener('input', fitWords);
+fitWords();
+['where', 'words', 'ic'].forEach((id) => $(id).addEventListener('input', refreshOdds));
 
 function setRunning(on) {
   running = on;
   $('go').textContent = on ? 'Stop search' : 'Start search';
   $('go').className = on ? 'stop' : '';
-  ['prefix', 'suffix', 'ic', 'threads', 'count'].forEach((id) => ($(id).disabled = on));
+  ['where', 'words', 'ic', 'lucky', 'threads', 'count'].forEach((id) => ($(id).disabled = on));
 }
 
 $('go').onclick = async () => {
   if (running) { await fetch('/api/stop', { method: 'POST' }); return; }
   const o = opts();
   if (validate(o).length) return;
+  runOpts = o;
   $('found').innerHTML = '';
+  $('luckyList').innerHTML = '';
+  $('luckyBox').hidden = !o.lucky;
+  if (o.lucky) $('luckyList').innerHTML = '<p class="none">Nothing yet. These are rare: expect one every few minutes.</p>';
   lines = [];
   const r = await fetch('/api/start', {
     method: 'POST',
@@ -89,14 +101,29 @@ $('go').onclick = async () => {
   setRunning(true);
 };
 
-const highlight = (a, pl, sl) =>
-  `<mark>${esc(a.slice(0, pl))}</mark>${esc(a.slice(pl, a.length - sl))}${sl ? `<mark>${esc(a.slice(a.length - sl))}</mark>` : ''}`;
+function highlightSpans(a, spans) {
+  let out = '', at = 0;
+  for (const [i, j] of spans) {
+    if (i < at) continue;
+    out += esc(a.slice(at, i)) + `<mark>${esc(a.slice(i, j))}</mark>`;
+    at = j;
+  }
+  return out + esc(a.slice(at));
+}
+
+// While searching, highlight where the word would have to be.
+function slotSpans(a, o) {
+  const list = words(o[o.where]);
+  const n = list.length ? Math.min(...list.map((w) => w.length)) : 1;
+  if (o.where === 'prefix') return [[0, n]];
+  if (o.where === 'suffix') return [[a.length - n, a.length]];
+  return [];
+}
 
 let lines = [];
-function pushSample(addr, s) {
-  if (!addr) return;
-  const pl = Math.max((s.prefix || '').length, 1), sl = (s.suffix || '').length;
-  lines.unshift(`<div>${highlight(addr, pl, sl)}</div>`);
+function pushSample(addr) {
+  if (!addr || !runOpts) return;
+  lines.unshift(`<div>${highlightSpans(addr, slotSpans(addr, runOpts))}</div>`);
   lines.length = Math.min(lines.length, 7);
   $('stream').innerHTML = lines.join('');
 }
@@ -111,19 +138,30 @@ function showStats(s) {
   $('chanceBar').style.width = `${(s.chance * 100).toFixed(2)}%`;
 }
 
-function addHit(h) {
-  const o = opts();
-  if ($('found').querySelector('.none')) $('found').innerHTML = '';
+function hitCard(h, spans, tag) {
   const el = document.createElement('div');
   el.className = 'hit';
-  el.innerHTML = `<div class="addr">${highlight(h.address, o.prefix.length, o.suffix.length)}</div>` +
+  el.innerHTML = `<div class="addr">${highlightSpans(h.address, spans)}${tag ? `<span class="why">${esc(tag)}</span>` : ''}</div>` +
     `<p>Saved to <code>${esc(h.file)}</code> after ${fmt(h.tries)} keys (${dur(h.seconds)}).</p>`;
-  $('found').prepend(el);
+  return el;
+}
+
+function addHit(h) {
+  if ($('found').querySelector('.none')) $('found').innerHTML = '';
+  $('found').prepend(hitCard(h, matchSpans(h.address, runOpts || opts())));
+}
+
+function addLucky(h) {
+  if ($('luckyList').querySelector('.none')) $('luckyList').innerHTML = '';
+  const m = h.address.match(/^(.)\1{4,}/) || h.address.match(/(.)\1{5,}/);
+  const spans = m ? [[m.index, m.index + m[0].length]] : [];
+  $('luckyList').prepend(hitCard(h, spans, h.why));
 }
 
 const es = new EventSource('/api/events');
-es.addEventListener('progress', (e) => { const s = JSON.parse(e.data); showStats(s); pushSample(s.sample, s); });
+es.addEventListener('progress', (e) => { const s = JSON.parse(e.data); showStats(s); pushSample(s.sample); });
 es.addEventListener('found', (e) => addHit(JSON.parse(e.data)));
+es.addEventListener('lucky', (e) => addLucky(JSON.parse(e.data)));
 es.addEventListener('stop', (e) => { showStats(JSON.parse(e.data)); setRunning(false); });
 
 fetch('/api/info').then((r) => r.json()).then((info) => {
@@ -133,7 +171,10 @@ fetch('/api/info').then((r) => r.json()).then((info) => {
     if (t === info.threads) o.selected = true;
     $('threads').appendChild(o);
   }
-  if (info.running) { setRunning(true); if (info.stats) showStats(info.stats); }
+  if (info.running) {
+    setRunning(true);
+    if (info.stats) { runOpts = { ...info.stats, where: info.stats.contains ? 'contains' : info.stats.suffix ? 'suffix' : 'prefix' }; showStats(info.stats); }
+  }
 });
 
 refreshOdds();

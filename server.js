@@ -55,7 +55,7 @@ createServer(async (req, res) => {
       return json(res, 200, { cores: availableParallelism?.() ?? 2, threads: defaultThreads(), running: !!search?.running, stats: search ? pub(search.stats()) : null });
     }
     if (path === '/api/estimate') {
-      const opts = { prefix: url.searchParams.get('prefix') || '', suffix: url.searchParams.get('suffix') || '', ignoreCase: url.searchParams.get('ic') === '1' };
+      const opts = { prefix: url.searchParams.get('prefix') || '', suffix: url.searchParams.get('suffix') || '', contains: url.searchParams.get('contains') || '', ignoreCase: url.searchParams.get('ic') === '1' };
       return json(res, 200, { errors: validate(opts), ...difficulty(opts) });
     }
     if (path === '/api/events') {
@@ -69,9 +69,11 @@ createServer(async (req, res) => {
       if (search?.running) return json(res, 409, { error: 'a search is already running' });
       const b = await body(req);
       const opts = {
-        prefix: String(b.prefix || '').slice(0, 10),
-        suffix: String(b.suffix || '').slice(0, 10),
+        prefix: String(b.prefix || '').slice(0, 300),
+        suffix: String(b.suffix || '').slice(0, 300),
+        contains: String(b.contains || '').slice(0, 300),
         ignoreCase: !!b.ignoreCase,
+        lucky: !!b.lucky,
         threads: Math.max(1, Math.min(availableParallelism?.() ?? 2, parseInt(b.threads, 10) || defaultThreads())),
         count: Math.max(1, Math.min(20, parseInt(b.count, 10) || 1)),
         outDir: join(root, 'keys'),
@@ -81,6 +83,7 @@ createServer(async (req, res) => {
       search = new Search(opts);
       search.on('progress', (s) => send('progress', pub(s)));
       search.on('found', (h) => send('found', { address: h.address, file: relative(root, h.file), tries: h.tries, seconds: h.seconds }));
+      search.on('lucky', (h) => send('lucky', { address: h.address, why: h.why, file: relative(root, h.file), tries: h.tries, seconds: h.seconds }));
       search.on('stop', (s) => send('stop', pub(s)));
       search.start();
       return json(res, 200, { ok: true, difficulty: search.diff, threads: opts.threads });

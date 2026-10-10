@@ -38,11 +38,15 @@ body{margin:0;color:var(--ink);font:400 16px/1.5 var(--sans);
 /* the question */
 .ask{font:500 30px/1.45 var(--sans);margin:0 0 6px;max-width:30ch}
 .ask input{font:500 28px var(--mono);color:var(--ink);background:transparent;border:0;border-bottom:3px solid var(--ink);
-  padding:0 4px 2px;width:5.2ch;outline:none;text-align:center}
+  padding:0 4px 2px;width:6ch;max-width:100%;outline:none}
+.ask select{font:500 26px var(--sans);color:var(--ink);background:transparent;border:0;border-bottom:3px dashed var(--ink-2);padding:0 2px 2px;cursor:pointer;outline:none}
+.ask select:focus-visible{outline:3px solid var(--pen);outline-offset:2px}
+.hint{margin:4px 0 0;font-size:14.5px;color:var(--ink-2)}
+.hint code{font-family:var(--mono);font-size:13.5px;color:var(--ink);background:rgba(255,255,255,.6);padding:1px 4px}
+.hit .why{display:inline-block;font-size:12.5px;color:var(--pen);border:1px solid var(--pen);border-radius:3px;padding:0 6px;margin-left:8px;vertical-align:2px}
 .ask input:focus{background:var(--marker)}
 .ask input.bad{border-bottom-color:var(--pencil);color:var(--pencil)}
-.ask #suffix{width:4ch}
-.controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:18px 0 6px;font-size:15px;color:var(--ink-2)}
+.controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:14px 0 4px;font-size:15px;color:var(--ink-2)}
 .controls label{display:flex;gap:8px;align-items:center;cursor:pointer}
 .controls select{font:500 14px var(--mono);color:var(--ink);background:var(--paper);border:1.5px solid var(--ink);border-radius:3px;padding:4px 6px}
 .controls input[type=checkbox]{accent-color:var(--ink);width:16px;height:16px}

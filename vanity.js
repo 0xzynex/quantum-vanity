@@ -2,7 +2,10 @@
 // quantum-vanity CLI
 //
 //   node vanity.js pump                    find an address starting with "pump"
-//   node vanity.js --suffix sol            ...ending with "sol"
+//   node vanity.js pump,bin,moon           ...starting with any of these words
+//   node vanity.js --suffix sun            ...ending with "sun"
+//   node vanity.js --contains moon         ..."moon" anywhere in the address
+//   node vanity.js pump --lucky            also keep rare addresses (aaaaa…, 777777)
 //   node vanity.js Zyn --ignore-case       case-insensitive
 //   node vanity.js abc --count 3           three hits
 //   node vanity.js pump --estimate         odds only, no search
@@ -13,7 +16,7 @@
 // in Solana CLI format. Nothing is sent anywhere.
 
 import { Search, defaultThreads } from './src/search.js';
-import { difficulty, validate, triesFor } from './src/pattern.js';
+import { difficulty, validate, triesFor, matchSpans, words } from './src/pattern.js';
 import { Grover } from './src/grover.js';
 import { readFileSync } from 'node:fs';
 import { relative } from 'node:path';
@@ -26,7 +29,7 @@ const val = (f, d) => {
   const i = argv.indexOf(f);
   return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d;
 };
-const valueFlags = ['--suffix', '--threads', '--count', '--out', '--grover', '--prefix', '--export'];
+const valueFlags = ['--suffix', '--threads', '--count', '--out', '--grover', '--prefix', '--export', '--contains'];
 const positional = argv.filter((a, i) => !a.startsWith('--') && !valueFlags.includes(argv[i - 1]));
 
 const C = { dim: '\x1b[2m', cyan: '\x1b[36m', mag: '\x1b[35m', grn: '\x1b[32m', yel: '\x1b[33m', red: '\x1b[31m', b: '\x1b[1m', r: '\x1b[0m' };
@@ -63,9 +66,10 @@ if (has('--export')) {
   process.exit(0);
 }
 
-if (has('--help') || (!positional.length && !has('--suffix') && !has('--prefix') && !has('--grover'))) {
+if (has('--help') || (!positional.length && !has('--suffix') && !has('--prefix') && !has('--contains') && !has('--grover'))) {
   console.log(`  usage
-    node vanity.js <prefix> [--suffix xyz] [--ignore-case] [--threads n] [--count n] [--out dir]
+    node vanity.js <prefix[,prefix…]> [--suffix a,b] [--contains a,b] [--ignore-case] [--lucky]
+                   [--threads n] [--count n] [--out dir]
     node vanity.js <prefix> --estimate
     node vanity.js --grover <qubits>
     node vanity.js --export keys/<address>.json [--reveal]
@@ -96,9 +100,11 @@ if (has('--grover')) {
 }
 
 const opts = {
-  prefix: val('--prefix', positional[0] || ''),
+  prefix: val('--prefix', positional.join(',')),
   suffix: val('--suffix', ''),
+  contains: val('--contains', ''),
   ignoreCase: has('--ignore-case') || has('-i'),
+  lucky: has('--lucky'),
 };
 const errors = validate(opts);
 if (errors.length) {
@@ -108,11 +114,17 @@ if (errors.length) {
 }
 
 const d = difficulty(opts);
-const label = `${opts.prefix ? opts.prefix + '…' : '…'}${opts.suffix}${opts.ignoreCase ? '  (any case)' : ''}`;
+const list = (f) => words(opts[f]).join(' | ');
+const label = [
+  opts.prefix && `starts with ${list('prefix')}`,
+  opts.suffix && `ends with ${list('suffix')}`,
+  opts.contains && `contains ${list('contains')}`,
+].filter(Boolean).join(', ') + (opts.ignoreCase ? '  (any case)' : '');
 console.log(`  pattern      ${C.cyan}${label}${C.r}`);
 const skew = d.classical / d.naive;
 const skewNote = skew > 1.5 ? `first char ${skew.toFixed(0)}x rarer` : skew < 0.67 ? `first char ${(1 / skew).toFixed(1)}x more common` : 'uniform';
-console.log(`  odds         1 in ${C.b}${fmt(d.classical)}${C.r}  ${C.dim}(naive 58^n says 1 in ${fmt(d.naive)} · ${skewNote})${C.r}`);
+console.log(`  odds         ${d.approximate ? '≈ ' : ''}1 in ${C.b}${fmt(d.classical)}${C.r}  ${C.dim}(naive 58^n says 1 in ${fmt(d.naive)} · ${skewNote})${C.r}`);
+if (opts.lucky) console.log(`  lucky        also keeping 5× the same char at the start, or 6 in a row  ${C.dim}→ keys/lucky${C.r}`);
 console.log(`  median       ${fmt(triesFor(d.p, 0.5))} tries for a 50% chance`);
 console.log(`  grover       ~${C.mag}${fmt(d.grover)}${C.r} oracle queries  ${C.dim}→ ${fmt(d.speedup)}x fewer${C.r}`);
 
@@ -135,15 +147,27 @@ search.on('progress', (s) => {
   if (tty) process.stdout.write('\r' + line + '   ');
 });
 search.on('found', (h) => {
-  const a = h.address;
-  const pl = opts.prefix.length, sl = opts.suffix.length;
-  const pretty = `${C.grn}${C.b}${a.slice(0, pl)}${C.r}${a.slice(pl, a.length - sl)}${C.grn}${C.b}${a.slice(a.length - sl)}${C.r}`;
   if (tty) process.stdout.write('\r' + ' '.repeat(110) + '\r');
-  console.log(`  ${C.grn}✓${C.r} ${pretty}`);
+  console.log(`  ${C.grn}✓${C.r} ${paint(h.address, matchSpans(h.address, opts))}`);
   console.log(`    ${C.dim}${fmt(h.tries)} tries · ${dur(h.seconds)} · saved ${relative(process.cwd(), h.file)}${C.r}`);
 });
+search.on('lucky', (h) => {
+  const m = h.address.match(/^(.)\1{4,}/) || h.address.match(/(.)\1{5,}/);
+  if (tty) process.stdout.write('\r' + ' '.repeat(110) + '\r');
+  console.log(`  ${C.mag}★${C.r} ${paint(h.address, m ? [[m.index, m.index + m[0].length]] : [])}  ${C.dim}${h.why}${C.r}`);
+  console.log(`    ${C.dim}saved ${relative(process.cwd(), h.file)}${C.r}`);
+});
+function paint(a, spans) {
+  let out = '', at = 0;
+  for (const [i, j] of spans) {
+    if (i < at) continue;
+    out += a.slice(at, i) + `${C.grn}${C.b}${a.slice(i, j)}${C.r}`;
+    at = j;
+  }
+  return out + a.slice(at);
+}
 search.on('stop', (s) => {
-  console.log(`\n  done · ${fmt(s.tries)} keys in ${dur(s.seconds)} · ${fmt(s.rate)}/s`);
+  console.log(`\n  done · ${fmt(s.tries)} keys in ${dur(s.seconds)} · ${fmt(s.rate)}/s${opts.lucky ? ` · ${s.lucky} lucky` : ''}`);
   console.log(`  ${C.yel}keep the .json files private: they are your wallet's secret key${C.r}`);
   console.log(`  ${C.dim}Phantom: node vanity.js --export keys/<address>.json --reveal  ·  CLI: solana-keygen pubkey keys/<address>.json${C.r}\n`);
   process.exit(0);
