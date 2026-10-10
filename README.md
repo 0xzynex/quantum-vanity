@@ -1,11 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" width="92" alt="">
-</p>
-
-<h1 align="center">Quantum Vanity</h1>
-
-<p align="center">
-  <b>Make a Solana address you like on your own computer.<br>See how much faster a quantum computer would find it.</b>
+  <img src="assets/banner.png" alt="Quantum Vanity" width="100%">
 </p>
 
 <p align="center">
@@ -18,7 +12,14 @@
 </p>
 
 <p align="center">
-  <img src="assets/dashboard.png" alt="Quantum Vanity dashboard" width="100%">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#every-vanity-calculator-is-wrong-about-the-first-character">The first-character trap</a> ·
+  <a href="#use-it-in-phantom">Use it in Phantom</a> ·
+  <a href="#security">Security</a>
+</p>
+
+<p align="center">
+  <img src="assets/demo.gif" alt="Searching for an address that starts with pu" width="100%">
 </p>
 
 ---
@@ -35,6 +36,10 @@
   grover       ~10,893 oracle queries → 17,660x fewer
 ```
 
+<p align="center">
+  <img src="assets/dashboard.png" alt="Quantum Vanity dashboard" width="100%">
+</p>
+
 ---
 
 ## Every vanity calculator is wrong about the first character
@@ -46,6 +51,10 @@ A Solana address is a 256-bit number written in base 58, and
 ```
 58^43  <  2^256  <  58^44
 ```
+
+<p align="center">
+  <img src="assets/first-char.png" alt="First-character odds for Solana addresses" width="100%">
+</p>
 
 so most addresses have 44 characters and can only **start** with one of the first ~17 symbols (`1`–`H`). Letters later in the alphabet only show up first on the rarer 43-character addresses.
 
@@ -60,9 +69,9 @@ So `pump…` is **17x harder** than calculators claim, while `Ab…` is **3.4x e
 
 ---
 
-## Run
+## Quick start
 
-Requires Node 18.17+. No dependencies, no build step, no internet.
+Requires [Node.js](https://nodejs.org) 18.17 or newer. No dependencies, no build step, no internet.
 
 ```bash
 git clone https://github.com/0xzynex/quantum-vanity.git
@@ -83,12 +92,11 @@ node vanity.js --export keys/<a>.json  # secret key for Phantom (add --reveal)
 npm test                               # 11 tests
 ```
 
-```
-  ✓ ZynQwCUscSPocYmYHvfVf93HtuEoUUwxPNh2xfvjGdD
-    1,171,062 tries · 56.7s · saved keys/ZynQwCUscSPocYmYHvfVf93HtuEoUUwxPNh2xfvjGdD.json
-```
+<p align="center">
+  <img src="assets/terminal.png" alt="Quantum Vanity in the terminal" width="88%">
+</p>
 
-### Using a found address
+## Use it in Phantom
 
 **Phantom or any wallet that imports a private key:**
 
@@ -157,7 +165,7 @@ quantum-vanity/
 ├── server.js          local web app (127.0.0.1, SSE progress)
 ├── index.html         dashboard
 ├── web/               dashboard script and styles
-├── assets/fonts/      IBM Plex Sans and Mono (SIL Open Font License)
+├── assets/           README images, logo, fonts (IBM Plex, SIL OFL)
 ├── src/
 │   ├── base58.js      encode / decode
 │   ├── keys.js        ed25519 keypairs, Solana CLI file format
