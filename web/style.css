@@ -1,0 +1,110 @@
+@font-face{font-family:"Plex Sans";src:url(../assets/fonts/ibm-plex-sans-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Plex Sans";src:url(../assets/fonts/ibm-plex-sans-latin-400-italic.woff2) format("woff2");font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:"Plex Sans";src:url(../assets/fonts/ibm-plex-sans-latin-500-normal.woff2) format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Plex Sans";src:url(../assets/fonts/ibm-plex-sans-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Plex Mono";src:url(../assets/fonts/ibm-plex-mono-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Plex Mono";src:url(../assets/fonts/ibm-plex-mono-latin-500-normal.woff2) format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Plex Mono";src:url(../assets/fonts/ibm-plex-mono-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
+
+/* Lab notebook: cool squared paper, navy ink, highlighter, red pencil, blue pen. */
+:root{
+  --paper:#e8edf2; --grid:#d2dbe5; --grid-major:#c3cfdc;
+  --ink:#152238; --ink-2:#4b5a73; --ink-3:#7d8aa0;
+  --marker:#ffe03d; --pencil:#c0352d; --pen:#2350b8;
+  --sans:"Plex Sans","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"Plex Mono","IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--paper)}
+body{margin:0;color:var(--ink);font:400 16px/1.5 var(--sans);
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid-major) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-major) 1px,transparent 1px),
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+  background-position:-1px -1px}
+.page{max-width:1380px;margin:0 auto;padding:36px 40px 40px}
+
+.masthead{display:flex;align-items:flex-end;gap:18px;padding-bottom:22px;border-bottom:2px solid var(--ink);margin-bottom:30px}
+.masthead img{width:52px;height:52px}
+.masthead h1{margin:0;font:600 34px/1 var(--sans);letter-spacing:-.01em}
+.masthead p{margin:6px 0 0;color:var(--ink-2);font-size:16px}
+.masthead .local{margin-left:auto;text-align:right;font-size:14px;color:var(--ink-2);max-width:250px;line-height:1.4}
+
+.sheet{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:48px;align-items:start}
+
+/* the question */
+.ask{font:500 30px/1.45 var(--sans);margin:0 0 6px;max-width:30ch}
+.ask input{font:500 28px var(--mono);color:var(--ink);background:transparent;border:0;border-bottom:3px solid var(--ink);
+  padding:0 4px 2px;width:5.2ch;outline:none;text-align:center}
+.ask input:focus{background:var(--marker)}
+.ask input.bad{border-bottom-color:var(--pencil);color:var(--pencil)}
+.ask #suffix{width:4ch}
+.controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:18px 0 6px;font-size:15px;color:var(--ink-2)}
+.controls label{display:flex;gap:8px;align-items:center;cursor:pointer}
+.controls select{font:500 14px var(--mono);color:var(--ink);background:var(--paper);border:1.5px solid var(--ink);border-radius:3px;padding:4px 6px}
+.controls input[type=checkbox]{accent-color:var(--ink);width:16px;height:16px}
+button{font:600 15px var(--sans);cursor:pointer;border-radius:3px;padding:11px 20px;border:2px solid var(--ink);background:var(--ink);color:var(--paper)}
+button:hover{background:#22314d}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--pen);outline-offset:2px}
+button.stop{background:transparent;color:var(--pencil);border-color:var(--pencil)}
+button.small{padding:6px 12px;font-size:13px;background:transparent;color:var(--ink)}
+.err{min-height:22px;color:var(--pencil);font-size:14px}
+
+/* live candidates: the memorable part */
+.ticker{margin:18px 0 24px;font-family:var(--mono);overflow:hidden;height:212px;position:relative;border-left:3px solid var(--ink);padding-left:16px}
+.ticker div{white-space:nowrap;color:var(--ink-3);font-size:17px;line-height:30px}
+.ticker div:first-child{font-size:22px;line-height:40px;color:var(--ink)}
+.ticker mark{background:var(--marker);color:var(--ink);padding:0 2px}
+.ticker .idle{font-family:var(--sans);font-size:16px;color:var(--ink-2);line-height:1.5}
+.ticker:after{content:"";position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(transparent,var(--paper))}
+
+.odds{margin:0 0 4px;font-size:22px;line-height:1.35}
+.odds b{font:600 24px var(--mono)}
+.why{margin:0 0 20px;color:var(--ink-2);font-size:15px;max-width:62ch}
+.why b{color:var(--pencil);font-weight:600}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);margin:0 0 14px;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+.stats div{padding:10px 12px}
+.stats div+div{border-left:1px solid var(--grid-major)}
+.stats dt{font-size:13px;color:var(--ink-2)}
+.stats dd{margin:2px 0 0;font:500 21px var(--mono);white-space:nowrap}
+.meter{height:10px;border:1.5px solid var(--ink);border-radius:2px;position:relative;background:var(--paper)}
+.meter i{position:absolute;left:0;top:0;bottom:0;background:var(--marker);width:0}
+.meter u{position:absolute;top:-5px;bottom:-5px;left:50%;border-left:1.5px dashed var(--ink-2)}
+.meterlabel{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-top:6px}
+
+.matches h2,.figure h2{font:600 19px var(--sans);margin:28px 0 10px}
+.hit{padding:12px 0;border-top:1px solid var(--grid-major)}
+.hit .addr{font:500 18px var(--mono);word-break:break-all}
+.hit mark{background:var(--marker);color:var(--ink);padding:0 1px}
+.hit p{margin:4px 0 0;font-size:13.5px;color:var(--ink-2)}
+.hit code{font-family:var(--mono);font-size:13px;color:var(--ink)}
+.none{color:var(--ink-2);font-size:15px;margin:0}
+
+/* the quantum figure */
+.figure{background:rgba(255,255,255,.55);border:1.5px solid var(--ink);padding:22px 24px 18px}
+.figure h2{margin:0 0 14px;font-size:21px}
+.versus{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:15px}
+.versus td{padding:7px 0;border-bottom:1px solid var(--grid-major)}
+.versus td:last-child{text-align:right;font:500 18px var(--mono)}
+.versus tr.q td:last-child{color:var(--pen)}
+.ratio{font-size:15px;color:var(--ink-2);margin:8px 0 2px}
+.ratio b{color:var(--ink);font-weight:600}
+.qline{font-size:13.5px;color:var(--ink-2);margin:0 0 16px}
+canvas{display:block;width:100%}
+.steps{display:flex;margin:10px 0 14px;border:1.5px solid var(--ink);border-radius:3px;overflow:hidden}
+.steps span{flex:1;text-align:center;font-size:14px;padding:6px 0;color:var(--ink-2)}
+.steps span+span{border-left:1px solid var(--grid-major)}
+.steps span.on{background:var(--ink);color:var(--paper)}
+.gctl{display:flex;gap:12px;align-items:center;font-size:14px;color:var(--ink-2);margin-top:12px}
+.gctl input{flex:1;accent-color:var(--ink)}
+.gctl b{font:500 15px var(--mono);color:var(--ink)}
+.caption{font-style:italic;font-size:14px;color:var(--ink-2);margin:14px 0 0;line-height:1.5}
+
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--ink-3);display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2)}
+footer a{color:var(--pen)}
+@media (max-width:1100px){.sheet{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.ask{font-size:24px}.page{padding:22px 18px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}

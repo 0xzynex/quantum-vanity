@@ -1,0 +1,15 @@
+{
+  "name": "quantum-vanity",
+  "version": "1.0.0",
+  "description": "Make a Solana vanity address on your CPU, and see how much faster Grover's algorithm would find it.",
+  "type": "module",
+  "bin": { "quantum-vanity": "vanity.js" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/vanity.test.js"
+  },
+  "keywords": ["solana", "vanity-address", "ed25519", "grover", "quantum", "keypair"],
+  "author": "@0xzynex",
+  "license": "MIT",
+  "engines": { "node": ">=18.17" }
+}

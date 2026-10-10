@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- A key whose bow is a Bloch sphere. -->
+  <g fill="none" stroke="#152238" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="22" cy="24" r="15"/>
+    <ellipse cx="22" cy="24" rx="15" ry="5.2"/>
+    <path d="M35 33 L56 54"/>
+    <path d="M46 44 L51 39"/>
+    <path d="M51 49 L55 45"/>
+  </g>
+  <path d="M22 24 L30 12" stroke="#c0352d" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="30" cy="12" r="4.2" fill="#ffe03d" stroke="#152238" stroke-width="2"/>
+</svg>

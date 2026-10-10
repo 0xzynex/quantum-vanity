@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quantum Vanity</title>
+<link rel="icon" href="assets/logo.svg">
+<link rel="stylesheet" href="web/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <img src="assets/logo.svg" alt="">
+    <div>
+      <h1>Quantum Vanity</h1>
+      <p>Make a Solana address you like, and see how much faster a quantum computer would find it.</p>
+    </div>
+    <div class="local">Runs on this computer. Keys are saved to the <code>keys</code> folder and never leave it.</div>
+  </header>
+
+  <main class="sheet">
+    <section>
+      <p class="ask">Find an address that starts with <input id="prefix" value="pump" autocomplete="off" spellcheck="false" aria-label="starts with"> and ends with <input id="suffix" value="" autocomplete="off" spellcheck="false" aria-label="ends with" placeholder="…">.</p>
+      <div class="controls">
+        <label><input type="checkbox" id="ic"> Ignore upper and lower case</label>
+        <label>Threads <select id="threads"></select></label>
+        <label>Stop after <select id="count"><option value="1">1 match</option><option value="3">3 matches</option><option value="5">5 matches</option></select></label>
+        <button id="go">Start search</button>
+      </div>
+      <div class="err" id="err" role="alert"></div>
+
+      <div class="ticker" id="stream"><div class="idle">Press Start search. Every key your computer tries will scroll past here, and the part that has to match is highlighted.</div></div>
+
+      <p class="odds" id="odds">—</p>
+      <p class="why" id="naive"></p>
+
+      <dl class="stats">
+        <div><dt>Keys tried</dt><dd id="tTries">0</dd></div>
+        <div><dt>Per second</dt><dd id="tRate">—</dd></div>
+        <div><dt>Time</dt><dd id="tElapsed">0 s</dd></div>
+        <div><dt>Typical wait</dt><dd id="tExpected">—</dd></div>
+      </dl>
+      <div class="meter"><i id="chanceBar"></i><u title="50%"></u></div>
+      <div class="meterlabel"><span>Chance of a match by now</span><span id="chance">0%</span></div>
+
+      <div class="matches">
+        <h2>Matches</h2>
+        <div id="found"><p class="none">Nothing yet. Each match is saved as a Solana CLI keypair file you can import into Phantom.</p></div>
+      </div>
+    </section>
+
+    <aside class="figure">
+      <h2>The same search on a quantum computer</h2>
+      <table class="versus">
+        <tr><td>Your computer, trying keys one by one</td><td id="vC">—</td></tr>
+        <tr class="q"><td>Grover's algorithm, oracle queries</td><td id="vG">—</td></tr>
+      </table>
+      <p class="ratio" id="vX"></p>
+      <p class="qline" id="vQ"></p>
+
+      <canvas id="amps"></canvas>
+      <div class="steps" id="stage"><span>1 Superpose</span><span>2 Oracle</span><span>3 Diffuse</span><span>4 Measure</span></div>
+      <canvas id="curve"></canvas>
+      <div class="gctl">
+        <span>Qubits</span><input id="qubits" type="range" min="4" max="10" step="1" value="8" aria-label="qubits"><b id="qOut">8</b>
+        <span id="gk"></span>
+        <button id="gPlay" class="small">Pause</button>
+      </div>
+      <p class="caption">Figure 1. Grover search over 2<sup>n</sup> states with one marked answer (yellow). The oracle flips its sign, diffusion reflects every amplitude about the mean (blue), and the answer grows each round until it is almost certain. This is an exact simulation that counts queries. No quantum computer today can run an ed25519 and base58 oracle.</p>
+    </aside>
+  </main>
+
+  <footer><span>Quantum Vanity. Zero dependencies. Keys from node:crypto, saved in Solana CLI format.</span><a href="https://x.com/0xzynex">@0xzynex</a></footer>
+</div>
+<script type="module" src="web/app.js"></script>
+</body>
+</html>

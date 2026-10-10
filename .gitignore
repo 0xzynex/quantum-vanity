@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.log
+
+# generated wallets: NEVER commit these
+keys/
+*.json
+!package.json
