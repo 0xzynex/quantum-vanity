@@ -6,21 +6,23 @@ import { mkdirSync, writeFileSync, chmodSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { keypairFromSeed, toSolanaKeypairJson } from './keys.js';
 import { encode } from './base58.js';
-import { difficulty, chanceAfter, validate } from './pattern.js';
+import { difficulty, chanceAfter, validate, PATTERNS } from './pattern.js';
 
 export const defaultThreads = () => Math.max(1, (availableParallelism?.() ?? 2) - 1);
 
 export class Search extends EventEmitter {
-  constructor({ prefix = '', suffix = '', contains = '', ignoreCase = false, lucky = false, luckyRule, threads = defaultThreads(), count = 1, outDir = 'keys' } = {}) {
+  constructor({ prefix = '', suffix = '', contains = '', ignoreCase = false, lucky = false, patterns, luckyRule, threads = defaultThreads(), count = 1, outDir = 'keys' } = {}) {
     super();
     const errors = validate({ prefix, suffix, contains, ignoreCase });
     if (errors.length) throw new Error(errors.join('\n'));
-    this.opts = { prefix, suffix, contains, ignoreCase, lucky, ...(luckyRule ? { luckyRule } : {}) };
+    // `lucky: true` turns on every pretty pattern; `patterns` picks some.
+    const pats = (patterns ?? (lucky ? Object.keys(PATTERNS) : [])).filter((p) => p in PATTERNS);
+    this.opts = { prefix, suffix, contains, ignoreCase, patterns: pats, ...(luckyRule ? { luckyRule } : {}) };
     this.lucky = [];
     this.kept = [];
     // Keys of addresses recently shown in the live ticker, so a user can keep one they liked.
     this.recent = new Map();
-    this.recentMax = 4000;
+    this.recentMax = 25000; // ~15 minutes of ticker history on a fast PC, under 3 MB
     this.threads = threads;
     this.count = count;
     this.outDir = resolve(outDir);
@@ -51,7 +53,7 @@ export class Search extends EventEmitter {
     if (m.sample) {
       this.lastSample = m.sample;
       if (m.seed) {
-        this.recent.set(m.sample, m.seed);
+        this.recent.set(m.sample, Buffer.from(m.seed));
         if (this.recent.size > this.recentMax) this.recent.delete(this.recent.keys().next().value);
       }
     }
@@ -66,9 +68,22 @@ export class Search extends EventEmitter {
       const hit = this.#save(m, join(this.outDir, 'lucky'));
       if (!hit) return;
       hit.why = m.why;
+      hit.span = m.span;
       this.lucky.push(hit);
       this.emit('lucky', hit);
     }
+  }
+
+  // Recent ticker addresses containing `q` (case-insensitive), newest first. Addresses only, never keys.
+  findRecent(q, limit = 20) {
+    const needle = String(q).trim().toLowerCase();
+    if (!needle) return [];
+    const out = [];
+    const all = [...this.recent.keys()];
+    for (let i = all.length - 1; i >= 0 && out.length < limit; i--) {
+      if (all[i].toLowerCase().includes(needle)) out.push(all[i]);
+    }
+    return out;
   }
 
   // Save an address that was shown in the ticker. Works while running and after stopping.

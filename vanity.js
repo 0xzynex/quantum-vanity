@@ -5,7 +5,8 @@
 //   node vanity.js pump,bin,moon           ...starting with any of these words
 //   node vanity.js --suffix sun            ...ending with "sun"
 //   node vanity.js --contains moon         ..."moon" anywhere in the address
-//   node vanity.js pump --lucky            also keep rare addresses (aaaaa…, 777777)
+//   node vanity.js pump --lucky            also keep pretty addresses (77777, …8888, 12345, aaaaa…)
+//   node vanity.js pump --digits --counting   only the number patterns
 //   node vanity.js Zyn --ignore-case       case-insensitive
 //   node vanity.js abc --count 3           three hits
 //   node vanity.js pump --estimate         odds only, no search
@@ -68,7 +69,7 @@ if (has('--export')) {
 
 if (has('--help') || (!positional.length && !has('--suffix') && !has('--prefix') && !has('--contains') && !has('--grover'))) {
   console.log(`  usage
-    node vanity.js <prefix[,prefix…]> [--suffix a,b] [--contains a,b] [--ignore-case] [--lucky]
+    node vanity.js <prefix[,prefix…]> [--suffix a,b] [--contains a,b] [--ignore-case] [--lucky | --digits --counting --letters]
                    [--threads n] [--count n] [--out dir]
     node vanity.js <prefix> --estimate
     node vanity.js --grover <qubits>
@@ -104,7 +105,7 @@ const opts = {
   suffix: val('--suffix', ''),
   contains: val('--contains', ''),
   ignoreCase: has('--ignore-case') || has('-i'),
-  lucky: has('--lucky'),
+  patterns: has('--lucky') ? ['digits', 'counting', 'letters'] : ['digits', 'counting', 'letters'].filter((p) => has('--' + p)),
 };
 const errors = validate(opts);
 if (errors.length) {
@@ -124,7 +125,7 @@ console.log(`  pattern      ${C.cyan}${label}${C.r}`);
 const skew = d.classical / d.naive;
 const skewNote = skew > 1.5 ? `first char ${skew.toFixed(0)}x rarer` : skew < 0.67 ? `first char ${(1 / skew).toFixed(1)}x more common` : 'uniform';
 console.log(`  odds         ${d.approximate ? '≈ ' : ''}1 in ${C.b}${fmt(d.classical)}${C.r}  ${C.dim}(naive 58^n says 1 in ${fmt(d.naive)} · ${skewNote})${C.r}`);
-if (opts.lucky) console.log(`  lucky        also keeping 5× the same char at the start, or 6 in a row  ${C.dim}→ keys/lucky${C.r}`);
+if (opts.patterns.length) console.log(`  pretty       also keeping ${opts.patterns.join(', ')}  ${C.dim}→ keys/lucky${C.r}`);
 console.log(`  median       ${fmt(triesFor(d.p, 0.5))} tries for a 50% chance`);
 console.log(`  grover       ~${C.mag}${fmt(d.grover)}${C.r} oracle queries  ${C.dim}→ ${fmt(d.speedup)}x fewer${C.r}`);
 
@@ -152,9 +153,8 @@ search.on('found', (h) => {
   console.log(`    ${C.dim}${fmt(h.tries)} tries · ${dur(h.seconds)} · saved ${relative(process.cwd(), h.file)}${C.r}`);
 });
 search.on('lucky', (h) => {
-  const m = h.address.match(/^(.)\1{4,}/) || h.address.match(/(.)\1{5,}/);
   if (tty) process.stdout.write('\r' + ' '.repeat(110) + '\r');
-  console.log(`  ${C.mag}★${C.r} ${paint(h.address, m ? [[m.index, m.index + m[0].length]] : [])}  ${C.dim}${h.why}${C.r}`);
+  console.log(`  ${C.mag}★${C.r} ${paint(h.address, h.span ? [h.span] : [])}  ${C.dim}${h.why}${C.r}`);
   console.log(`    ${C.dim}saved ${relative(process.cwd(), h.file)}${C.r}`);
 });
 function paint(a, spans) {
@@ -167,7 +167,7 @@ function paint(a, spans) {
   return out + a.slice(at);
 }
 search.on('stop', (s) => {
-  console.log(`\n  done · ${fmt(s.tries)} keys in ${dur(s.seconds)} · ${fmt(s.rate)}/s${opts.lucky ? ` · ${s.lucky} lucky` : ''}`);
+  console.log(`\n  done · ${fmt(s.tries)} keys in ${dur(s.seconds)} · ${fmt(s.rate)}/s${opts.patterns.length ? ` · ${s.lucky} pretty` : ''}`);
   console.log(`  ${C.yel}keep the .json files private: they are your wallet's secret key${C.r}`);
   console.log(`  ${C.dim}Phantom: node vanity.js --export keys/<address>.json --reveal  ·  CLI: solana-keygen pubkey keys/<address>.json${C.r}\n`);
   process.exit(0);

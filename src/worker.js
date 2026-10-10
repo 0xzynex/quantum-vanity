@@ -2,11 +2,11 @@
 import { parentPort, workerData } from 'node:worker_threads';
 import { randomKeypair } from './keys.js';
 import { encode } from './base58.js';
-import { makeMatcher, lucky } from './pattern.js';
+import { makeMatcher, pretty } from './pattern.js';
 
 const match = makeMatcher(workerData);
-const keepLucky = !!workerData.lucky;
-const [luckyStart, luckyRun] = workerData.luckyRule || [5, 6]; // tests use an easier rule
+const patterns = workerData.patterns || [];
+const rule = workerData.luckyRule; // tests use an easier letters rule
 const REPORT = 2000;
 let count = 0;
 
@@ -19,10 +19,10 @@ for (;;) {
     count = 0;
     continue;
   }
-  if (keepLucky) {
-    const why = lucky(addr, luckyStart, luckyRun);
-    if (why) {
-      parentPort.postMessage({ type: 'lucky', n: count, why, address: addr, seed: [...seed], publicKey: [...publicKey] });
+  if (patterns.length) {
+    const hit = pretty(addr, patterns, rule);
+    if (hit) {
+      parentPort.postMessage({ type: 'lucky', n: count, why: hit.why, span: hit.span, address: addr, seed: [...seed], publicKey: [...publicKey] });
       count = 0;
       continue;
     }

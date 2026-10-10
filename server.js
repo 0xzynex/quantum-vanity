@@ -73,7 +73,7 @@ createServer(async (req, res) => {
         suffix: String(b.suffix || '').slice(0, 300),
         contains: String(b.contains || '').slice(0, 300),
         ignoreCase: !!b.ignoreCase,
-        lucky: !!b.lucky,
+        patterns: Array.isArray(b.patterns) ? b.patterns.map(String).slice(0, 5) : [],
         threads: Math.max(1, Math.min(availableParallelism?.() ?? 2, parseInt(b.threads, 10) || defaultThreads())),
         count: Math.max(1, Math.min(20, parseInt(b.count, 10) || 1)),
         outDir: join(root, 'keys'),
@@ -83,10 +83,13 @@ createServer(async (req, res) => {
       search = new Search(opts);
       search.on('progress', (s) => send('progress', pub(s)));
       search.on('found', (h) => send('found', { address: h.address, file: relative(root, h.file), tries: h.tries, seconds: h.seconds }));
-      search.on('lucky', (h) => send('lucky', { address: h.address, why: h.why, file: relative(root, h.file), tries: h.tries, seconds: h.seconds }));
+      search.on('lucky', (h) => send('lucky', { address: h.address, why: h.why, span: h.span, file: relative(root, h.file), tries: h.tries, seconds: h.seconds }));
       search.on('stop', (s) => send('stop', pub(s)));
       search.start();
       return json(res, 200, { ok: true, difficulty: search.diff, threads: opts.threads });
+    }
+    if (path === '/api/recent') {
+      return json(res, 200, { addresses: search ? search.findRecent(url.searchParams.get('q') || '') : [] });
     }
     if (path === '/api/keep' && req.method === 'POST') {
       const b = await body(req);

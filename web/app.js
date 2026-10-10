@@ -20,7 +20,8 @@ const INK = '#152238', INK2 = '#4b5a73', GRID = '#c3cfdc', MARKER = '#ffe03d', P
 const WHERE_TEXT = { prefix: 'starts with', suffix: 'ends with', contains: 'contains' };
 const opts = () => {
   const where = $('where').value;
-  return { prefix: '', suffix: '', contains: '', [where]: $('words').value, ignoreCase: $('ic').checked, lucky: $('lucky').checked, where };
+  const patterns = [...document.querySelectorAll('#pretty input:checked')].map((i) => i.value);
+  return { prefix: '', suffix: '', contains: '', [where]: $('words').value, ignoreCase: $('ic').checked, patterns, where };
 };
 let running = false, lastRate = 0, runOpts = null;
 
@@ -78,7 +79,8 @@ function setRunning(on) {
   running = on;
   $('go').textContent = on ? 'Stop search' : 'Start search';
   $('go').className = on ? 'stop' : '';
-  ['where', 'words', 'ic', 'lucky', 'threads', 'count'].forEach((id) => ($(id).disabled = on));
+  ['where', 'words', 'ic', 'threads', 'count'].forEach((id) => ($(id).disabled = on));
+  document.querySelectorAll('#pretty input').forEach((i) => (i.disabled = on));
 }
 
 $('go').onclick = async () => {
@@ -86,13 +88,13 @@ $('go').onclick = async () => {
   const o = opts();
   if (validate(o).length) return;
   runOpts = o;
-  $('found').innerHTML = '';
+  $('found').innerHTML = `<p class="none">Searching for addresses that ${esc(describe(o))}. Each one appears here as soon as it is found.</p>`;
   $('luckyList').innerHTML = '';
   $('keptList').innerHTML = '';
   $('keptBox').hidden = true;
   lastPushed = '';
-  $('luckyBox').hidden = !o.lucky;
-  if (o.lucky) $('luckyList').innerHTML = '<p class="none">Nothing yet. These are rare: expect one every few minutes.</p>';
+  $('luckyBox').hidden = !o.patterns.length;
+  if (o.patterns.length) $('luckyList').innerHTML = '<p class="none">Nothing yet. Pretty ones show up here as soon as one passes by.</p>';
   lines = [];
   const r = await fetch('/api/start', {
     method: 'POST',
@@ -125,10 +127,12 @@ function slotSpans(a, o) {
 
 let lines = [], paused = false, lastPushed = '';
 const HINT = $('tickhint').textContent;
-function pushSample(addr) {
+function pushSample(addr, spans, cls = '') {
   if (!addr || !runOpts || paused || addr === lastPushed) return;
   lastPushed = addr;
-  lines.unshift(`<div data-a="${esc(addr)}" title="Click to keep this wallet">${highlightSpans(addr, slotSpans(addr, runOpts))}</div>`);
+  const sp = spans || slotSpans(addr, runOpts);
+  const attr = cls ? `class="${cls}"` : `data-a="${esc(addr)}" title="Click to keep this wallet"`;
+  lines.unshift(`<div ${attr}>${highlightSpans(addr, sp)}</div>`);
   lines.length = Math.min(lines.length, 7);
   $('stream').innerHTML = lines.join('');
 }
@@ -145,10 +149,7 @@ $('stream').addEventListener('mouseleave', () => {
   $('tickhint').classList.remove('paused');
   $('tickhint').textContent = HINT;
 });
-$('stream').addEventListener('click', async (e) => {
-  const row = e.target.closest('[data-a]');
-  if (!row) return;
-  const address = row.dataset.a;
+async function keepAddress(address, row) {
   const r = await fetch('/api/keep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address }) });
   const j = await r.json();
   if (!r.ok) { $('tickhint').textContent = j.error; return; }
@@ -161,6 +162,32 @@ $('stream').addEventListener('click', async (e) => {
   el.innerHTML = `<div class="addr">${esc(address)}</div><p>Kept. Saved to <code>${esc(j.file)}</code>.</p>`;
   $('keptList').prepend(el);
   $('tickhint').textContent = `Kept ${address.slice(0, 6)}… Click more, or move the mouse away to continue.`;
+}
+$('stream').addEventListener('click', (e) => {
+  const row = e.target.closest('[data-a]');
+  if (row) keepAddress(row.dataset.a, row);
+});
+
+let missedTimer;
+$('missed').addEventListener('input', () => {
+  clearTimeout(missedTimer);
+  missedTimer = setTimeout(async () => {
+    const q = $('missed').value.trim();
+    if (!q) { $('missedList').innerHTML = ''; return; }
+    const { addresses } = await (await fetch('/api/recent?q=' + encodeURIComponent(q))).json();
+    if (!addresses.length) {
+      $('missedList').innerHTML = `<p>Not in the last few minutes of the ticker. You can search for <b>${esc(q)}</b> with the box above to get a fresh one.</p>`;
+      return;
+    }
+    $('missedList').innerHTML = addresses.map((a) => {
+      const i = a.toLowerCase().indexOf(q.toLowerCase());
+      return `<div data-m="${esc(a)}" title="Click to keep">${highlightSpans(a, [[i, i + q.length]])}</div>`;
+    }).join('') + '<p>Click one to keep it.</p>';
+  }, 200);
+});
+$('missedList').addEventListener('click', (e) => {
+  const row = e.target.closest('[data-m]');
+  if (row) keepAddress(row.dataset.m, row);
 });
 
 function showStats(s) {
@@ -183,21 +210,29 @@ function hitCard(h, spans, tag) {
 
 function addHit(h) {
   if ($('found').querySelector('.none')) $('found').innerHTML = '';
-  $('found').prepend(hitCard(h, matchSpans(h.address, runOpts || opts())));
+  const spans = matchSpans(h.address, runOpts || opts());
+  $('found').prepend(hitCard(h, spans));
+  pushSample(h.address, spans, 'match');
 }
 
 function addLucky(h) {
   if ($('luckyList').querySelector('.none')) $('luckyList').innerHTML = '';
-  const m = h.address.match(/^(.)\1{4,}/) || h.address.match(/(.)\1{5,}/);
-  const spans = m ? [[m.index, m.index + m[0].length]] : [];
+  const spans = h.span ? [h.span] : [];
   $('luckyList').prepend(hitCard(h, spans, h.why));
+  pushSample(h.address, spans, 'match');
 }
 
 const es = new EventSource('/api/events');
 es.addEventListener('progress', (e) => { const s = JSON.parse(e.data); showStats(s); pushSample(s.sample); });
 es.addEventListener('found', (e) => addHit(JSON.parse(e.data)));
 es.addEventListener('lucky', (e) => addLucky(JSON.parse(e.data)));
-es.addEventListener('stop', (e) => { showStats(JSON.parse(e.data)); setRunning(false); });
+es.addEventListener('stop', (e) => {
+  const s = JSON.parse(e.data);
+  showStats(s);
+  pushSample(s.sample);
+  setRunning(false);
+  if (!lines.length) $('stream').innerHTML = `<div class="idle">Done in ${dur(s.seconds)}: ${fmt(s.tries)} keys tried, ${s.found} match${s.found === 1 ? '' : 'es'} found. The matches are below.</div>`;
+});
 
 fetch('/api/info').then((r) => r.json()).then((info) => {
   for (let t = 1; t <= info.cores; t++) {

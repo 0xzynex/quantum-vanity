@@ -28,9 +28,17 @@
 
 **Left side, real.** Type one word like `pump`, or several like `pump, bin, moon`, and choose whether it should start the address, end it or appear anywhere. Every CPU core generates ed25519 keypairs with Node's built-in crypto until one encodes to an address that matches. The keypair is saved as a Solana CLI file you can import into Phantom or use with `solana-keygen`.
 
-Tick **lucky addresses** and the search also keeps rare finds on the side, like five of the same character at the start or six in a row anywhere. They are saved to `keys/lucky`.
+While it searches, it can also keep **pretty addresses** on the side, saved to `keys/lucky`:
 
-Every line in the live ticker is a real wallet. Hover to pause it and click any address you like to keep it in `keys/kept`. Only the keys of addresses that were actually shown are held in memory, so nothing piles up on disk.
+| Pattern | Example | On a fast PC |
+|---------|---------|--------------|
+| Repeated digits | `…77777…` anywhere, `…8888` at the end | every ~15 s |
+| Counting digits | `…12345…`, `…98765…` | every ~35 s |
+| Same character | `aaaaa…` at the start, 6 in a row anywhere | every ~2 min |
+
+Base58 has no `0`, so digits run from 1 to 9.
+
+Every line in the live ticker is a real wallet. Hover to pause it and click any address you like to keep it in `keys/kept`. Scrolled past too fast? Type any piece of it into **Missed one?** and pick it from the last ~15 minutes of the ticker. Only those recent keys are held in memory, so nothing piles up on disk.
 
 **Right side, quantum.** The same search as Grover's algorithm on an exact statevector: an oracle flips the sign of the right answer, diffusion reflects every amplitude about the mean, and the answer's probability climbs to ~100% after about **√N** queries instead of **N**.
 
@@ -89,7 +97,8 @@ Or straight from the terminal:
 node vanity.js pump                    # address starting with "pump"
 node vanity.js pump,bin,moon           # starting with any of these words
 node vanity.js --contains moon         # "moon" anywhere in the address
-node vanity.js pump --lucky            # also keep rare ones like aaaaa… or …777777…
+node vanity.js pump --lucky            # also keep pretty ones: 77777, …8888, 12345, aaaaa…
+node vanity.js pump --digits --counting   # only the number patterns
 node vanity.js Zyn --ignore-case       # any case
 node vanity.js So --suffix 1           # prefix + suffix
 node vanity.js Ab --count 5            # five hits

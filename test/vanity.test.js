@@ -176,6 +176,7 @@ test('an address seen in the live ticker can be kept, and its key opens that add
     const arr = JSON.parse(readFileSync(hit.file, 'utf8'));
     assert.equal(address(keypairFromSeed(Buffer.from(arr.slice(0, 32))).publicKey), sample);
     assert.equal(s.keep('11111111111111111111111111111111'), null, 'unknown addresses are refused');
+    assert.deepEqual(s.findRecent(sample.slice(5, 11).toLowerCase()).includes(sample), true, 'found by a piece of it');
     assert.equal(s.stats().sample, sample);
     assert.ok(!('seed' in s.stats()), 'stats never carry secret keys');
   } finally {

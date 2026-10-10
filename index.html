@@ -29,14 +29,23 @@
         <label>Threads <select id="threads"></select></label>
         <label>Stop after <select id="count"><option value="1">1 match</option><option value="3">3 matches</option><option value="5">5 matches</option><option value="20">20 matches</option></select></label>
       </div>
-      <div class="controls">
-        <label><input type="checkbox" id="lucky"> Also keep lucky addresses: 5 of the same character at the start, or 6 in a row anywhere</label>
-      </div>
+      <fieldset class="pretty" id="pretty">
+        <legend>While searching, also keep pretty addresses</legend>
+        <label><input type="checkbox" value="digits"> Repeated digits: <code>77777</code> anywhere or <code>…8888</code> at the end</label>
+        <label><input type="checkbox" value="counting"> Counting digits: <code>12345</code> … <code>56789</code> or <code>98765</code> … <code>54321</code></label>
+        <label><input type="checkbox" value="letters"> Same character: <code>aaaaa…</code> at the start or 6 in a row anywhere</label>
+        <p>With all three on, expect one about every 10 seconds on a fast PC. They go to <code>keys/lucky</code>.</p>
+      </fieldset>
       <div class="controls"><button id="go">Start search</button></div>
       <div class="err" id="err" role="alert"></div>
 
       <div class="ticker" id="stream"><div class="idle">Press Start search. Every key your computer tries will scroll past here, and the part that has to match is highlighted.</div></div>
       <p class="tickhint" id="tickhint">Every line here is a real wallet. See one you like? Hold the mouse over the list to pause it, then click the address to keep it.</p>
+      <div class="missed">
+        <label for="missed">Missed one? Type what you saw</label>
+        <input id="missed" placeholder="HTX" autocomplete="off" spellcheck="false">
+        <div id="missedList"></div>
+      </div>
 
       <p class="odds" id="odds">—</p>
       <p class="why" id="naive"></p>
@@ -59,7 +68,7 @@
         <div id="keptList"></div>
       </div>
       <div class="matches" id="luckyBox" hidden>
-        <h2>Lucky addresses</h2>
+        <h2>Pretty addresses</h2>
         <div id="luckyList"></div>
       </div>
     </section>

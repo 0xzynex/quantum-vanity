@@ -126,13 +126,63 @@ export function matchSpans(a, opts) {
 // "Lucky" addresses: five of the same character at the start, or six in a row anywhere.
 const luckyRegex = new Map();
 export function lucky(a, start = 5, run = 6) {
+  const r = luckySpan(a, start, run);
+  return r ? r.why : null;
+}
+function luckySpan(a, start = 5, run = 6) {
   const key = start * 100 + run;
   let r = luckyRegex.get(key);
   if (!r) luckyRegex.set(key, (r = [new RegExp(`^(.)\\1{${start - 1},}`), new RegExp(`(.)\\1{${run - 1},}`)]));
   let m = a.match(r[0]);
-  if (m) return `starts with ${m[0].length}× ${m[1]}`;
+  if (m) return { why: `starts with ${m[0].length}× ${m[1]}`, span: [0, m[0].length] };
   m = a.match(r[1]);
-  if (m) return `${m[0].length}× ${m[1]} in a row`;
+  if (m) return { why: `${m[0].length}× ${m[1]} in a row`, span: [m.index, m.index + m[0].length] };
+  return null;
+}
+
+// Pretty numbers. Base58 has no 0, so digits are 1 to 9.
+const DIGIT_RUN = /([1-9])\1{4,}/;     // 77777 anywhere
+const DIGIT_END = /([1-9])\1{3,}$/;    // ...8888 at the end
+function digitsSpan(a) {
+  let m = a.match(DIGIT_END);
+  if (m) return { why: `ends with ${m[0]}`, span: [m.index, a.length] };
+  m = a.match(DIGIT_RUN);
+  if (m) return { why: `${m[0]} in the middle`, span: [m.index, m.index + m[0].length] };
+  return null;
+}
+const RUNS = [];
+for (let s = 1; s <= 5; s++) {
+  RUNS.push(Array.from({ length: 5 }, (_, i) => s + i).join(''));
+  RUNS.push(Array.from({ length: 5 }, (_, i) => s + 4 - i).join(''));
+}
+function countingSpan(a) {
+  for (const r of RUNS) {
+    const i = a.indexOf(r);
+    if (i >= 0) {
+      // extend to the full run, e.g. 1234567
+      let j = i + r.length;
+      const step = r[1] - r[0];
+      while (j < a.length && +a[j] === +a[j - 1] + step && a[j] >= '1' && a[j] <= '9') j++;
+      return { why: `counts ${a.slice(i, j)}`, span: [i, j] };
+    }
+  }
+  return null;
+}
+
+export const PATTERNS = {
+  letters: { label: 'Same character 5 times at the start or 6 in a row', test: luckySpan },
+  digits: { label: 'Repeated digits: 77777 anywhere or …8888 at the end', test: digitsSpan },
+  counting: { label: 'Counting digits: 12345 … 56789 or 98765 … 54321', test: countingSpan },
+};
+
+// First pretty pattern found, or null. `rule` lets tests use an easier letters rule.
+export function pretty(a, patterns, rule) {
+  for (const name of patterns) {
+    const p = PATTERNS[name];
+    if (!p) continue;
+    const r = name === 'letters' && rule ? p.test(a, rule[0], rule[1]) : p.test(a);
+    if (r) return r;
+  }
   return null;
 }
 

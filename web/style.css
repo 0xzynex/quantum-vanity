@@ -60,7 +60,7 @@ button.small{padding:6px 12px;font-size:13px;background:transparent;color:var(--
 /* live candidates: the memorable part */
 .ticker{margin:18px 0 24px;font-family:var(--mono);overflow:hidden;height:212px;position:relative;border-left:3px solid var(--ink);padding-left:16px}
 .ticker div{white-space:nowrap;color:var(--ink-3);font-size:17px;line-height:30px}
-.ticker div:first-child{font-size:22px;line-height:40px;color:var(--ink)}
+.ticker div[data-a]:first-child{font-size:22px;line-height:40px;color:var(--ink)}
 .ticker mark{background:var(--marker);color:var(--ink);padding:0 2px}
 .ticker div[data-a]{cursor:pointer;border-radius:3px;padding:0 6px;margin-left:-6px}
 .ticker div[data-a]:hover{background:rgba(255,255,255,.75);color:var(--ink)}
@@ -68,6 +68,7 @@ button.small{padding:6px 12px;font-size:13px;background:transparent;color:var(--
 .ticker.paused{border-left-color:var(--pen)}
 .tickhint{margin:-14px 0 22px;font-size:14px;color:var(--ink-2)}
 .tickhint.paused{color:var(--pen)}
+.ticker div.match{color:var(--ink)}
 .ticker .idle{font-family:var(--sans);font-size:16px;color:var(--ink-2);line-height:1.5}
 .ticker.paused:after{display:none}
 .ticker:after{content:"";position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(transparent,var(--paper))}
@@ -119,3 +120,20 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--ink-3);displa
 footer a{color:var(--pen)}
 @media (max-width:1100px){.sheet{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.ask{font-size:24px}.page{padding:22px 18px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.pretty{border:1.5px solid var(--ink);border-radius:3px;padding:10px 16px 8px;margin:16px 0 4px;background:rgba(255,255,255,.4)}
+.pretty legend{font:600 15px var(--sans);padding:0 6px}
+.pretty label{display:flex;gap:8px;align-items:center;font-size:15px;color:var(--ink-2);margin:5px 0;cursor:pointer}
+.pretty input{accent-color:var(--ink);width:16px;height:16px}
+.pretty code{font-family:var(--mono);font-size:13.5px;color:var(--ink);background:var(--marker);padding:0 3px}
+.pretty p{margin:6px 0 2px;font-size:13px;color:var(--ink-2)}
+.pretty p code{background:rgba(255,255,255,.6)}
+
+.missed{margin:-10px 0 22px;font-size:14px;color:var(--ink-2)}
+.missed label{margin-right:8px}
+.missed input{font:500 15px var(--mono);color:var(--ink);background:rgba(255,255,255,.6);border:1.5px solid var(--ink);border-radius:3px;padding:4px 8px;width:12ch}
+#missedList{margin-top:6px;font-family:var(--mono);font-size:15px}
+#missedList div{cursor:pointer;padding:2px 6px;margin-left:-6px;border-radius:3px;color:var(--ink)}
+#missedList div:hover{background:rgba(255,255,255,.8)}
+#missedList div.kept{background:var(--marker)}
+#missedList p{margin:4px 0;font-family:var(--sans)}
