@@ -163,3 +163,22 @@ test('lucky addresses are detected and saved separately', async () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('an address seen in the live ticker can be kept, and its key opens that address', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gv-'));
+  try {
+    const s = new Search({ prefix: 'zzzzzz', threads: 1, outDir: dir });
+    const sample = await new Promise((resolve) => { s.on('progress', (st) => st.sample && resolve(st.sample)); s.start(); });
+    await s.stop();
+    const hit = s.keep(sample);
+    assert.ok(hit, 'kept');
+    assert.ok(hit.file.includes(join(dir, 'kept')));
+    const arr = JSON.parse(readFileSync(hit.file, 'utf8'));
+    assert.equal(address(keypairFromSeed(Buffer.from(arr.slice(0, 32))).publicKey), sample);
+    assert.equal(s.keep('11111111111111111111111111111111'), null, 'unknown addresses are refused');
+    assert.equal(s.stats().sample, sample);
+    assert.ok(!('seed' in s.stats()), 'stats never carry secret keys');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

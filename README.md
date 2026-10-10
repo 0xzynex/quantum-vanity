@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/grover-simulated-2350b8?style=flat-square" />
   <img src="https://img.shields.io/badge/dependencies-0-152238?style=flat-square" />
   <img src="https://img.shields.io/badge/keys-never%20leave%20your%20machine-c0352d?style=flat-square" />
-  <img src="https://img.shields.io/badge/tests-14%20passing-152238?style=flat-square" />
+  <img src="https://img.shields.io/badge/tests-15%20passing-152238?style=flat-square" />
   <img src="https://img.shields.io/badge/license-MIT-white?style=flat-square" />
 </p>
 
@@ -29,6 +29,8 @@
 **Left side, real.** Type one word like `pump`, or several like `pump, bin, moon`, and choose whether it should start the address, end it or appear anywhere. Every CPU core generates ed25519 keypairs with Node's built-in crypto until one encodes to an address that matches. The keypair is saved as a Solana CLI file you can import into Phantom or use with `solana-keygen`.
 
 Tick **lucky addresses** and the search also keeps rare finds on the side, like five of the same character at the start or six in a row anywhere. They are saved to `keys/lucky`.
+
+Every line in the live ticker is a real wallet. Hover to pause it and click any address you like to keep it in `keys/kept`. Only the keys of addresses that were actually shown are held in memory, so nothing piles up on disk.
 
 **Right side, quantum.** The same search as Grover's algorithm on an exact statevector: an oracle flips the sign of the right answer, diffusion reflects every amplitude about the mean, and the answer's probability climbs to ~100% after about **√N** queries instead of **N**.
 
@@ -94,7 +96,7 @@ node vanity.js Ab --count 5            # five hits
 node vanity.js pump --estimate         # odds and time only
 node vanity.js --grover 10             # Grover on 10 qubits, in the terminal
 node vanity.js --export keys/<a>.json  # secret key for Phantom (add --reveal)
-npm test                               # 14 tests
+npm test                               # 15 tests
 ```
 
 <p align="center">

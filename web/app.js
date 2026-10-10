@@ -88,6 +88,9 @@ $('go').onclick = async () => {
   runOpts = o;
   $('found').innerHTML = '';
   $('luckyList').innerHTML = '';
+  $('keptList').innerHTML = '';
+  $('keptBox').hidden = true;
+  lastPushed = '';
   $('luckyBox').hidden = !o.lucky;
   if (o.lucky) $('luckyList').innerHTML = '<p class="none">Nothing yet. These are rare: expect one every few minutes.</p>';
   lines = [];
@@ -120,13 +123,45 @@ function slotSpans(a, o) {
   return [];
 }
 
-let lines = [];
+let lines = [], paused = false, lastPushed = '';
+const HINT = $('tickhint').textContent;
 function pushSample(addr) {
-  if (!addr || !runOpts) return;
-  lines.unshift(`<div>${highlightSpans(addr, slotSpans(addr, runOpts))}</div>`);
+  if (!addr || !runOpts || paused || addr === lastPushed) return;
+  lastPushed = addr;
+  lines.unshift(`<div data-a="${esc(addr)}" title="Click to keep this wallet">${highlightSpans(addr, slotSpans(addr, runOpts))}</div>`);
   lines.length = Math.min(lines.length, 7);
   $('stream').innerHTML = lines.join('');
 }
+$('stream').addEventListener('mouseenter', () => {
+  if (!lines.length) return;
+  paused = true;
+  $('stream').classList.add('paused');
+  $('tickhint').classList.add('paused');
+  $('tickhint').textContent = 'Paused. Click an address to keep it. The search keeps running in the background.';
+});
+$('stream').addEventListener('mouseleave', () => {
+  paused = false;
+  $('stream').classList.remove('paused');
+  $('tickhint').classList.remove('paused');
+  $('tickhint').textContent = HINT;
+});
+$('stream').addEventListener('click', async (e) => {
+  const row = e.target.closest('[data-a]');
+  if (!row) return;
+  const address = row.dataset.a;
+  const r = await fetch('/api/keep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address }) });
+  const j = await r.json();
+  if (!r.ok) { $('tickhint').textContent = j.error; return; }
+  row.classList.add('kept');
+  $('keptBox').hidden = false;
+  if ($('keptList').querySelector(`[data-k="${CSS.escape(address)}"]`)) return;
+  const el = document.createElement('div');
+  el.className = 'hit';
+  el.dataset.k = address;
+  el.innerHTML = `<div class="addr">${esc(address)}</div><p>Kept. Saved to <code>${esc(j.file)}</code>.</p>`;
+  $('keptList').prepend(el);
+  $('tickhint').textContent = `Kept ${address.slice(0, 6)}… Click more, or move the mouse away to continue.`;
+});
 
 function showStats(s) {
   lastRate = s.rate;

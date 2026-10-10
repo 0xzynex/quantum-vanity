@@ -62,7 +62,14 @@ button.small{padding:6px 12px;font-size:13px;background:transparent;color:var(--
 .ticker div{white-space:nowrap;color:var(--ink-3);font-size:17px;line-height:30px}
 .ticker div:first-child{font-size:22px;line-height:40px;color:var(--ink)}
 .ticker mark{background:var(--marker);color:var(--ink);padding:0 2px}
+.ticker div[data-a]{cursor:pointer;border-radius:3px;padding:0 6px;margin-left:-6px}
+.ticker div[data-a]:hover{background:rgba(255,255,255,.75);color:var(--ink)}
+.ticker div.kept{background:var(--marker)!important;color:var(--ink)}
+.ticker.paused{border-left-color:var(--pen)}
+.tickhint{margin:-14px 0 22px;font-size:14px;color:var(--ink-2)}
+.tickhint.paused{color:var(--pen)}
 .ticker .idle{font-family:var(--sans);font-size:16px;color:var(--ink-2);line-height:1.5}
+.ticker.paused:after{display:none}
 .ticker:after{content:"";position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(transparent,var(--paper))}
 
 .odds{margin:0 0 4px;font-size:22px;line-height:1.35}

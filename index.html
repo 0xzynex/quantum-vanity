@@ -36,6 +36,7 @@
       <div class="err" id="err" role="alert"></div>
 
       <div class="ticker" id="stream"><div class="idle">Press Start search. Every key your computer tries will scroll past here, and the part that has to match is highlighted.</div></div>
+      <p class="tickhint" id="tickhint">Every line here is a real wallet. See one you like? Hold the mouse over the list to pause it, then click the address to keep it.</p>
 
       <p class="odds" id="odds">—</p>
       <p class="why" id="naive"></p>
@@ -52,6 +53,10 @@
       <div class="matches">
         <h2>Matches</h2>
         <div id="found"><p class="none">Nothing yet. Each match is saved as a Solana CLI keypair file you can import into Phantom.</p></div>
+      </div>
+      <div class="matches" id="keptBox" hidden>
+        <h2>Kept by you</h2>
+        <div id="keptList"></div>
       </div>
       <div class="matches" id="luckyBox" hidden>
         <h2>Lucky addresses</h2>

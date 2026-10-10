@@ -28,7 +28,7 @@ for (;;) {
     }
   }
   if (count >= REPORT) {
-    parentPort.postMessage({ type: 'progress', n: count, sample: addr });
+    parentPort.postMessage({ type: 'progress', n: count, sample: addr, seed: [...seed], publicKey: [...publicKey] });
     count = 0;
   }
 }

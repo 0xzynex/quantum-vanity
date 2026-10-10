@@ -88,6 +88,12 @@ createServer(async (req, res) => {
       search.start();
       return json(res, 200, { ok: true, difficulty: search.diff, threads: opts.threads });
     }
+    if (path === '/api/keep' && req.method === 'POST') {
+      const b = await body(req);
+      const hit = search?.keep(String(b.address || ''));
+      if (!hit) return json(res, 404, { error: 'That address scrolled past too long ago. Keep it sooner next time.' });
+      return json(res, 200, { address: hit.address, file: relative(root, hit.file) });
+    }
     if (path === '/api/stop' && req.method === 'POST') {
       if (search?.running) await search.stop('stopped');
       return json(res, 200, { ok: true });

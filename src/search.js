@@ -17,6 +17,10 @@ export class Search extends EventEmitter {
     if (errors.length) throw new Error(errors.join('\n'));
     this.opts = { prefix, suffix, contains, ignoreCase, lucky, ...(luckyRule ? { luckyRule } : {}) };
     this.lucky = [];
+    this.kept = [];
+    // Keys of addresses recently shown in the live ticker, so a user can keep one they liked.
+    this.recent = new Map();
+    this.recentMax = 4000;
     this.threads = threads;
     this.count = count;
     this.outDir = resolve(outDir);
@@ -44,7 +48,13 @@ export class Search extends EventEmitter {
   #onMessage(m) {
     if (!this.running) return;
     this.tries += m.n;
-    if (m.sample) this.lastSample = m.sample;
+    if (m.sample) {
+      this.lastSample = m.sample;
+      if (m.seed) {
+        this.recent.set(m.sample, m.seed);
+        if (this.recent.size > this.recentMax) this.recent.delete(this.recent.keys().next().value);
+      }
+    }
     if (m.type === 'found') {
       const hit = this.#save(m, this.outDir);
       if (!hit) return;
@@ -59,6 +69,15 @@ export class Search extends EventEmitter {
       this.lucky.push(hit);
       this.emit('lucky', hit);
     }
+  }
+
+  // Save an address that was shown in the ticker. Works while running and after stopping.
+  keep(address) {
+    const seed = this.recent.get(address);
+    if (!seed) return null;
+    const hit = this.#save({ address, seed }, join(this.outDir, 'kept'));
+    if (hit) this.kept.push(hit);
+    return hit;
   }
 
   #save(m, dir) {
