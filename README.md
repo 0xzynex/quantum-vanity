@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="assets/avatar.png" alt="Quantum Vanity logo" width="140">
+</p>
+
+<p align="center">
   <img src="assets/banner.png" alt="Quantum Vanity" width="100%">
 </p>
 
@@ -44,8 +48,8 @@ Every line in the live ticker is a real wallet. Hover to pause it and click any 
 
 ```
   pattern      pump…
-  odds         1 in 192,368,424   (naive 58^n says 1 in 11,316,496 · first char 17x rarer)
-  grover       ~10,893 oracle queries → 17,660x fewer
+  odds         1 in 194,978,687   (naive 58^n says 1 in 11,316,496 · first char 17x rarer)
+  grover       ~10,967 oracle queries → 17,779x fewer
 ```
 
 <p align="center">
@@ -75,7 +79,7 @@ so most addresses have 44 characters and can only **start** with one of the firs
 | `1` | 1 in 256 | 1 in 58 |
 | `2` … `H` | **1 in 17** | 1 in 58 |
 | `J` | 1 in 70 | 1 in 58 |
-| `K` … `z` | **1 in 986** | 1 in 58 |
+| `K` … `z` | **1 in 999** | 1 in 58 |
 
 So `pump…` is **17x harder** than calculators claim, while `Ab…` is **3.4x easier**. Quantum Vanity computes the first-character odds exactly with BigInt, and the test suite checks them against real generated keys.
 
@@ -134,16 +138,16 @@ solana config set --keypair keys/<address>.json
 
 ## How long will it take?
 
-Rough numbers for a modern 12-thread CPU (~250k keys/s):
+Measured on a 12-thread desktop running 11 threads (~55k keys/s):
 
 | Pattern | Odds | Expected time | Grover queries |
 |---------|------|---------------|----------------|
-| `Ab…` | 1 in 986 | instant | 25 |
-| `So…1` | 1 in 3.3M | ~13 s | 1,430 |
-| `Zyn…` | 1 in 3.3M | ~13 s | 1,430 |
-| `pump…` | 1 in 192M | ~13 min | 10,893 |
-| `pump…` any case | 1 in 12M | ~48 s | 2,723 |
-| `pumpfun…` | 1 in 3.8×10¹³ | ~4.8 years | ~4.8M |
+| `Ab…` | 1 in 982 | instant | 25 |
+| `So…1` | 1 in 3.4M | ~1 min | 1,440 |
+| `Zyn…` | 1 in 3.4M | ~1 min | 1,440 |
+| `pump…` | 1 in 195M | ~1 h | 10,967 |
+| `pump…` any case | 1 in 12M | ~4 min | 2,742 |
+| `pumpfun…` | 1 in 3.8×10¹³ | ~22 years | ~4.8M |
 
 Run `node vanity.js <pattern> --estimate` for your exact odds.
 
@@ -208,3 +212,7 @@ MIT for the code. IBM Plex fonts are included under the SIL Open Font License (`
 <p align="center">
   <a href="https://x.com/0xzynex"><b>@0xzynex</b></a>
 </p>
+
+## Logo
+
+The official logo is [`assets/avatar.png`](assets/avatar.png) (1024×1024): a key whose bow is a Bloch sphere. The same file is used for the project avatar everywhere.

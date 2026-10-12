@@ -13,29 +13,24 @@ import { ALPHABET } from './base58.js';
 const TWO256 = 1n << 256n;
 const ADDRESS_LENGTH = 44;
 
+// The public key is a uniform 256-bit number N. If its first byte is zero
+// (N < 2^248) the address starts with "1". Otherwise the first symbol is the
+// leading base58 digit of N, so we count, exactly, how many N in [2^248, 2^256)
+// have each leading digit.
 function firstCharTable() {
   const table = new Map([...ALPHABET].map((c) => [c, 0]));
-  // A leading zero byte becomes a leading "1".
+  const LO = 1n << 248n;
   table.set('1', 1 / 256);
-  const rest = 1 - 1 / 256;
-  let total = 0n;
-  const count = new Array(58).fill(0n);
-  for (let L = 1; L <= 45; L++) {
-    const unit = 58n ** BigInt(L - 1);
-    const lo = unit, hi = unit * 58n; // numbers with exactly L digits
-    for (let d = 1n; d < 58n; d++) {
+  for (let d = 1n; d < 58n; d++) {
+    let count = 0n;
+    for (let L = 1; L <= 45; L++) {
+      const unit = 58n ** BigInt(L - 1);
       let a = d * unit, b = (d + 1n) * unit;
-      if (a < lo) a = lo;
-      if (b > hi) b = hi;
+      if (a < LO) a = LO;
       if (b > TWO256) b = TWO256;
-      if (a >= TWO256 || b <= a) continue;
-      count[Number(d)] += b - a;
-      total += b - a;
+      if (b > a) count += b - a;
     }
-  }
-  for (let d = 1; d < 58; d++) {
-    const share = Number((count[d] * 1000000000000n) / total) / 1e12;
-    table.set(ALPHABET[d], share * rest);
+    table.set(ALPHABET[Number(d)], Number((count * 10n ** 15n) / TWO256) / 1e15);
   }
   return table;
 }
